@@ -1,0 +1,175 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden; /* отключаем прокрутку (скролл)*/
+    font-family: sans-serif; /*устанавливаем шрифт без засечек*/
+}
+
+#game-container {
+    width: 100%;
+    height: 100vh;
+    background-size: cover;     /*общие значения ⬇*/
+    background-position: center;/*растягиваем картинку так, чтобы полностю закрыть экран*/
+    transition: background-image 0.5s ease; /* Плавная смена фона */
+    position: relative;     /*якорь*/
+    background-repeat: no-repeat ;
+
+}
+
+.side-btns {
+    display: flex;
+    gap: 100px; /* Разносим Лево и Право */
+}
+
+.nav-btn {
+    position: absolute;
+    padding: 15px 25px;
+    z-index: 20;
+    font-size: 18px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border: 1px solid gold;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.nav-btn:hover {
+    background: rgba(218, 165, 32, 0.8);
+}
+
+#btn-up    { top: 20px; left: 50%; transform: translateX(-50%); }
+#btn-down  { bottom: 150px; left: 50%; transform: translateX(-50%); } /* Чуть выше диалога */
+#btn-left  { top: 50%; left: 20px; transform: translateY(-50%); }
+#btn-right { top: 50%; right: 20px; transform: translateY(-50%); }
+
+#location-name {
+    background: rgba(255,255,255,0.8);
+    padding: 10px 15px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-weight: bold;
+}
+
+#dialog-box {
+    position: absolute;
+    left: 10%;
+    bottom: 20px;
+    width: 80%;
+    min-height: 100px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 20px;
+    border: 2px solid gold;
+    border-radius: 15px;
+    z-index: 10; /* Чтобы текст был поверх фона */
+    transition: opacity 0.5s ease;
+    cursor: pointer;
+    user-select: none;
+}
+
+#dialog-box:hover {
+    background: rgba(0, 0, 0, 0.9); /* Слегка подсветим при наведении */
+    border-color: white; /* Или сменим цвет рамки */
+}
+
+/* Персонаж по центру экрана */
+#character {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%); /* Центрируем */
+    height: 130vh; /* Рост персонажа — 80% экрана */
+    z-index: 5;
+}
+
+#predmetLv {
+    position: absolute;
+    left: 10%;
+    height: 50%;
+    z-index: 7;
+    top: 50%;
+    display: none;
+}
+
+#predmetPr {
+    position: absolute;
+    left: 50%;
+    height: 50%;
+    z-index: 7;
+    top: 50%;
+    display: none;
+}
+
+#small {
+    position: absolute;
+    top: 30%;
+    left: 30%;
+    width: 50px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    display: none;
+    z-index: 8;
+}
+
+#full {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fdfdfd;
+    color: #000;
+    padding: 30px;
+    border: 2px solid #333;
+    z-index: 100;
+    width: 300px;
+    box-shadow: 0 0 50px black;
+}
+
+#Look {
+    display: none;
+    position: absolute;
+    z-index: 5;
+    right: 28%;
+    top: 35%;
+    width: 180px;
+    height: 180px;
+}
+
+#Energi {
+    display: none;
+    position: absolute;
+    z-index: 10;
+    top: 10%;
+    left: 45%;
+    width: 250px;
+    height: auto;
+    cursor: pointer;
+}
+
+
+#Avtomat {
+    display: none;
+    position: absolute;
+    z-index: 5;
+
+    bottom: -10%;
+    left: -5%;
+    width: 80%;
+    height: auto;
+}
+
+#smotritel {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%); /* Центрируем */
+    height: 130vh; /* Рост персонажа — 80% экрана */
+    z-index: 5;
+}
+

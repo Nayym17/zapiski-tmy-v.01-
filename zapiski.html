@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Записка</title>
+    <style>
+        /* Маленькая записка на фоне */
+        #small { width: 100px; height: 100px; background: yellow; cursor: pointer; padding: 10px; }
+        
+        /* Записка на весь экран (скрыта) */
+        #full { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: white; 
+            text-align: center; 
+            padding-top: 50px; 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="small" onclick="openNote()">Нажми на записку</div>
+
+    <div id="full">
+        <h1>Текст записки на весь экран</h1>
+        <p>Тут любое твое содержание...</p>
+        <button onclick="closeNote()">Выйти</button>
+    </div>
+
+    <script>
+        function openNote() {
+            document.getElementById('full').style.display = 'block';
+        }
+        function closeNote() {
+            document.getElementById('full').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>

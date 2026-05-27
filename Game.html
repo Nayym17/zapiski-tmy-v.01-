@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Новелла</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="game-container">
+        <button id="btn-up" class="nav-btn" onclick="move('up')">▲ Вверх</button>
+        <div class="side-btns"> 
+            <button id="btn-left" class="nav-btn" onclick="move('left')">◀ Зайти</button>
+            <button id="btn-right" class="nav-btn" onclick="move('right')">▶ Выйти</button>
+        </div>
+        <button id="btn-down" class="nav-btn" onclick="move('down')">▼ Вниз</button>
+
+        <img id="predmetLv" src="" style="display: none;">
+        <img id="predmetPr" src="" style="display: none;">
+
+
+        <img id="character" src="" style="display: none;">
+
+        <div id="dialog-box">
+            <b id="char-name"></b><br>
+            <span id="char-text"></span>
+        </div>
+        
+        <div id="location-name">Лестница</div>
+
+        <div id="small" onclick="openNote()">Записка</div>
+        <div id="full">
+            <h1 id="note-title">Записка</h1>
+            <p id="note-text"></p>
+            <button onclick="closeNote()">спрятать записку</button>
+        </div>
+
+        <img id="Look" src="" style="display: none;">
+        <img id="Energi" src="" style="display: none;" onclick="turnOnEnergy()">
+        <img id="Avtomat" src="" style="display: none;">
+        <img id="smotritel" src="" style="display: none; position: absolute;">
+
+        <audio id="move-sound">
+            <source src="Assets/Voice.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="day-music" loop>
+            <source src="Assets/DayMusic.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="night-music" loop>
+            <source src="Assets/NightMusic.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <script src="script.js"></script> 
+</body>
+</html>

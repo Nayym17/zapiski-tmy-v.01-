@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Ящик с вещами</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        #box-container {
+            width: 600px;
+            height: 400px;
+            background: #4e342e;
+            border: 15px solid #3e2723;
+            position: relative;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        #secret-code {
+            position: absolute;
+            top: 180px;
+            left: 250px;
+            padding: 10px;
+            background: #fff;
+            color: #000;
+            font-weight: bold;
+            border: 1px solid #ccc;
+            transform: rotate(-5deg);
+            user-select: none;
+            z-index: 1;
+        }
+
+        .item {
+            padding: 10px;
+            position: absolute;
+            cursor: grab;
+            user-select: none;
+            z-index: 10;
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            box-sizing: border-box; /* Важно для правильного расчета границ */
+        }
+
+        .item:active { cursor: grabbing; }
+
+        .book { width: 120px; height: 160px; background: #8e24aa; color: white; }
+        .shirt { width: 150px; height: 150px; background: #546e7a; border-radius: 10px; }
+        .folder { width: 180px; height: 130px; background: #fbc02d; }
+    </style>
+</head>
+<body>
+
+    <a href="Game.html" class="back-button">Вернуться назад</a>
+
+    <div id="box-container">
+        <!-- Код лежит внизу всех вещей -->
+        <div id="secret-code" onclick="findcode()" style="cursor: pointer;">КОД: 2453</div>
+
+        <!-- Вещи сверху -->
+        <div class="item book" style="top: 80px; left: 50px;">Учебник по анатомии существ зазеркалья</div>
+        <div class="item folder" style="top: 120px; left: 220px;">Папка с файлами тьмы</div>
+        <div class="item shirt" style="top: 180px; left: 100px;">Снимки темного света</div>
+        <div class="item book" style="top: 40px; left: 350px; background: #1b5e20;">Словарь сумрака</div>
+    </div>
+
+    <script>
+        const items = document.querySelectorAll('.item');
+        const box = document.getElementById('box-container');
+        let activeItem = null;
+        let offset = { x: 0, y: 0 };
+
+        items.forEach(item => {
+            item.addEventListener('mousedown', (e) => {
+                activeItem = item;
+                items.forEach(i => i.style.zIndex = 10);
+                item.style.zIndex = 11;
+                
+                // Считаем смещение курсора относительно левого верхнего угла самого ящика
+                const boxRect = box.getBoundingClientRect();
+                offset.x = e.clientX - boxRect.left - item.offsetLeft;
+                offset.y = e.clientY - boxRect.top - item.offsetTop;
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (activeItem) {
+                const boxRect = box.getBoundingClientRect();
+                
+                // Новые координаты внутри ящика
+                let newX = e.clientX - boxRect.left - offset.x;
+                let newY = e.clientY - boxRect.top - offset.y;
+
+                // Ограничиваем движение стенками ящика
+                const maxX = boxRect.width - activeItem.offsetWidth - 30; // 30px - учет рамки
+                const maxY = boxRect.height - activeItem.offsetHeight - 30;
+
+                newX = Math.max(0, Math.min(newX, maxX));
+                newY = Math.max(0, Math.min(newY, maxY));
+
+                activeItem.style.left = newX + 'px';
+                activeItem.style.top = newY + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            activeItem = null;
+        });
+
+        function findcode() {
+            // Исправлена опечатка в foindSecretCode -> foundSecretCode
+            localStorage.setItem('foundSecretCode', '2453');
+            alert("Вы запомнили код: 2453");
+            window.location.href = 'Game.html';
+        }
+    </script>
+</body>
+</html>

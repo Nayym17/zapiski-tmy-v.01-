@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Записки тьмы</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
+
+        .bg-slider-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .bg-track {
+            display: flex;
+            height: 100%;
+            width: max-content;
+            animation: scrollBackground 40s linear infinite; 
+        }
+
+        .bg-track img {
+            height: 100vh;
+            width: auto; 
+            display: block;
+        }
+
+        @keyframes scrollBackground {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .bg-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.55); 
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .menu-wrapper {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .menu-container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8); 
+            padding: 50px;
+            border-radius: 15px;
+            border: 2px solid #555;
+            box-sizing: border-box;
+            width: 400px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+        }
+
+        h1 {
+            font-size: 44px;
+            margin: 0 0 10px 0;
+            color: #fff;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 1); 
+        }
+        .subtitle {
+            font-size: 32px;
+            margin-bottom: 35px;
+            color: #aaa;
+            text-shadow: 0 3px 10px rgba(0, 0, 0, 1);
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            max-width: 250px;
+            padding: 15px;
+            margin: 12px auto;
+            background: #444;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 20px;
+            transition: 0.3s;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .btn:hover {
+            background: #666;
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        .modal {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #666;
+            text-align: center;
+            width: 300px;
+        }
+        .volume-slider {
+            width: 100%;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-slider-container">
+        <div class="bg-track">
+            <img src="Assets/Lestnica.jpg" alt="Локация 1">
+            <img src="Assets/koridor.jpg" alt="Локация 2">
+            <img src="Assets/Fae.jpg" alt="Локация 3">
+
+            <img src="Assets/Lestnica.jpg" alt="Локация 1 Дубликат">
+            <img src="Assets/koridor.jpg" alt="Локация 2 Дубликат">
+            <img src="Assets/Fae.jpg" alt="Локация 3 Дубликат">
+        </div>
+        <div class="bg-overlay"></div>
+    </div>
+
+    <div class="menu-wrapper">
+        <div class="menu-container">
+            <h1>Новелла</h1>
+            <div class="subtitle">Записки тьмы</div>
+
+            <button class="btn" onclick="startGame()" onmouseenter="playHoverSound()">Начать игру</button>
+            <button class="btn" onclick="toggleSettings(true)" onmouseenter="playHoverSound()">Настройки</button>
+            <button class="btn" onclick="exitGame()" onmouseenter="playHoverSound()">Выход</button>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h2>Настройки</h2>
+            <label for="volume">Громкость звуков: <span id="volumeValue">50</span>%</label>
+            <input type="range" id="volume" class="volume-slider" min="0" max="100" value="50" oninput="changeVolume(this.value)">
+            <button class="btn" onclick="toggleSettings(false)" onmouseenter="playHoverSound()">Закрыть</button>
+        </div>
+    </div>
+
+    <audio id="menu-music" loop>
+        <source src="Assets/MenuMusic.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="hover-sound">
+        <source src="Assets/Voice.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('gameWin') === 'true') {
+                localStorage.removeItem('gameWin'); 
+                alert("Поздравляем! Вы успешно прошли новеллу «Записки тьмы» и спаслись!");
+            }
+
+            if (localStorage.getItem('gameVolume') === null) {
+                localStorage.setItem('gameVolume', '50');
+            }
+
+            const savedVolume = localStorage.getItem('gameVolume');
+            applyVolume(savedVolume);
+
+            document.body.addEventListener('click', () => {
+                const music = document.getElementById('menu-music');
+                if (music && music.paused) {
+                    music.play().catch(e => console.log("Музыка ждет активности"));
+                }
+            }, { once: true });
+        });
+
+        function startGame() {
+            const agree = confirm("вы действительно хотите начать новую игру ?");
+            if (agree) {
+                const currentVolume = localStorage.getItem('gameVolume') || 50;
+                localStorage.clear();
+                
+                localStorage.setItem('gameVolume', currentVolume);
+                localStorage.setItem('lastLocation', 'Лестница');
+                localStorage.setItem('isNightState', 'false');
+                
+                window.location.href = 'Game.html';
+            }
+        }
+
+        function toggleSettings(show) {
+            const modal = document.getElementById('settingsModal');
+            modal.style.display = show ? 'flex' : 'none';
+            
+            if (show) {
+                const savedVolume = localStorage.getItem('gameVolume') || 50;
+                document.getElementById('volume').value = savedVolume;
+                document.getElementById('volumeValue').innerText = savedVolume;
+            }
+        }
+
+        function changeVolume(value) {
+            document.getElementById('volumeValue').innerText = value;
+            localStorage.setItem('gameVolume', value);
+            applyVolume(value);
+        }
+
+        function applyVolume(volumeValue) {
+            const volumeRatio = volumeValue / 100;
+            const music = document.getElementById('menu-music');
+            const hover = document.getElementById('hover-sound');
+            
+            if (music) music.volume = volumeRatio;
+            if (hover) hover.volume = volumeRatio;
+        }
+
+        function playHoverSound() {
+            const hover = document.getElementById('hover-sound');
+            if (hover) {
+                hover.currentTime = 0;
+                hover.play().catch(e => {});
+            }
+        }
+
+        function exitGame() {
+            window.close();
+            setTimeout(() => {
+                document.body.innerHTML = '<div style="text-align:center; font-size:24px; color:#666; margin-top:40vh;">Игра завершена. Вы можете закрыть вкладку.</div>';
+            }, 100);
+        }
+    </script> 
+
+</body>
+</html>

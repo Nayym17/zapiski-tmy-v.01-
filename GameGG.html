@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8">
+	<title>Зал душ</title>
+	<style>
+		body {
+			background: #000;
+			color: #fff;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			height: 100vh;
+			margin: 0;
+			font-family: serif;
+			overflow: hidden;
+		}
+
+		.container { text-align: center; }
+		
+		.skulls { 
+			display: flex; 
+			gap: 30px; 
+			margin-top: 50px; 
+			justify-content: center;
+			position: relative;
+			min-height: 140px;
+		}
+		
+		.skull {
+			width: 100px;
+			height: 100px;
+			cursor: pointer;
+			position: relative;
+			transition: transform 0.4s ease, opacity 0.4s ease, filter 0.4s ease;
+		}
+		
+		.skull img { 
+			width: 100%; 
+			filter: drop-shadow(0 0 5px red); 
+			user-select: none;
+			pointer-events: none;
+		}
+		
+		.message { 
+			margin-top: 30px; 
+			font-size: 24px; 
+			min-height: 40px; 
+			font-weight: bold;
+		}
+
+		/* Стили скримера */
+		#screamer-overlay {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			height: 100vh;
+			background: #000;
+			z-index: 9999;
+			justify-content: center;
+			align-items: center;
+		}
+
+		#screamer-overlay img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			animation: shake 0.1s infinite;
+		}
+
+		@keyframes shake {
+			0% { transform: translate(5px, 5px) scale(1.05); }
+			25% { transform: translate(-5px, -5px) scale(1.0); }
+			50% { transform: translate(-5px, 5px) scale(1.05); }
+			75% { transform: translate(5px, -5px) scale(1.0); }
+			100% { transform: translate(5px, 5px) scale(1.05); }
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1 id="title">Найди печать душ под одним из пяти черепов...</h1>
+		<div class="skulls" id="skulls-container">
+			<div class="skull" onclick="check(0)"><img src="Assets/skull.png" alt="Череп"></div>
+			<div class="skull" onclick="check(1)"><img src="Assets/skull.png" alt="Череп"></div>
+			<div class="skull" onclick="check(2)"><img src="Assets/skull.png" alt="Череп"></div>
+			<div class="skull" onclick="check(3)"><img src="Assets/skull.png" alt="Череп"></div>
+			<div class="skull" onclick="check(4)"><img src="Assets/skull.png" alt="Череп"></div>
+		</div>
+		<div class="message" id="msg"></div>
+	</div>
+
+	<!-- Окно скримера -->
+	<div id="screamer-overlay">
+		<img id="screamer-img" src="Assets/Ono.png" alt="СКРИМЕР">
+		<audio id="screamer-sound">
+			<source src="Assets/Scream.mp3" type="audio/mpeg">
+		</audio>
+	</div>
+
+	<script>
+		let winningIndex = Math.floor(Math.random() * 5);
+		let canClick = true;
+
+		// Считываем количество ошибок из localStorage
+		let failCount = parseInt(localStorage.getItem('skullFails') || '0');
+
+		function check(index) {
+			if (!canClick) return;
+
+			const msg = document.getElementById('msg');
+			const skulls = document.querySelectorAll('.skull');
+			const selectedSkull = skulls[index];
+
+			canClick = false;
+			selectedSkull.style.transform = "translateY(-25px)";
+
+			if (index === winningIndex) {
+				// ПОБЕДА
+				msg.innerText = "Ты нашел печать! Теперь она твоя!...";
+				msg.style.color = "gold";
+				selectedSkull.querySelector('img').style.filter = "drop-shadow(0 0 15px gold)";
+
+				localStorage.setItem('gamedaedKey', 'true');
+				localStorage.removeItem('skullFails');
+
+				setTimeout(() => {
+					window.location.href = "Game.html";
+				}, 2000);
+			} else {
+				// НЕ УГАДАЛ
+				failCount++;
+				localStorage.setItem('skullFails', failCount);
+
+				if (failCount >= 3) {
+					triggerScreamer();
+				} else {
+					// Обычный промах
+					msg.innerText = `Здесь пусто! Ошибок: ${failCount} из 3.`;
+					msg.style.color = "red";
+					selectedSkull.style.opacity = "0.3";
+
+					setTimeout(() => {
+						msg.innerText = "Они меняются местами!";
+						msg.style.color = "#fff";
+						shuffleSkulls();
+					}, 1200);
+				}
+			}
+		}
+
+		function triggerScreamer() {
+			const overlay = document.getElementById('screamer-overlay');
+			const sound = document.getElementById('screamer-sound');
+			
+			localStorage.removeItem('skullFails');
+
+			overlay.style.display = 'flex';
+			sound.play().catch(e => console.log("Автоплей звука заблокирован браузером"));
+
+			setTimeout(() => {
+				window.location.href = "Game.html";
+			}, 1500);
+		}
+
+		function shuffleSkulls() {
+			const skulls = document.querySelectorAll('.skull');
+			const msg = document.getElementById('msg');
+
+			// Анимация перемешивания
+			skulls.forEach(skull => {
+				const randomOffset = Math.random() * 80 - 40;
+				const randomJump = Math.random() * -40 - 20;
+				
+				skull.style.transform = `translate(${randomOffset}px, ${randomJump}px)`;
+				skull.querySelector('img').style.filter = "drop-shadow(0 0 15px red)";
+			});
+
+			// Возврат на места и сброс состояния
+			setTimeout(() => {
+				skulls.forEach(skull => {
+					skull.style.transform = "translate(0, 0)";
+					skull.style.opacity = "1";
+					skull.querySelector('img').style.filter = "drop-shadow(0 0 5px red)";
+				});
+
+				winningIndex = Math.floor(Math.random() * 5);
+				msg.innerText = "";
+				canClick = true;
+			}, 1000);
+		}
+	</script>
+</body>
+</html>

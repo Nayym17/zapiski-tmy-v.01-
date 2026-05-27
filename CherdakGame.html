@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Старое Радио</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .radio-body {
+            width: 450px;
+            height: 280px;
+            background: #2c1a10;
+            border: 10px solid #1a0f0a;
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.8);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Светящаяся шкала частот */
+        .scale {
+            width: 90%;
+            height: 80px;
+            background: #111;
+            border: 3px solid #332211;
+            box-shadow: inset 0 0 20px rgba(255, 100, 0, 0.2);
+            position: relative;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        /* Красная стрелка настройки */
+        .pointer {
+            position: absolute;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: #ff3333;
+            box-shadow: 0 0 10px #ff0000;
+            transition: left 0.1s linear;
+        }
+
+        /* Деления шкалы */
+        .ticks {
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(90deg, #554433, #554433 2px, transparent 2px, transparent 20px);
+            opacity: 0.4;
+        }
+
+        .frequency-display {
+            position: absolute;
+            bottom: 5px;
+            width: 100%;
+            text-align: center;
+            color: #ffaa00;
+            font-size: 18px;
+            text-shadow: 0 0 5px #ffaa00;
+        }
+
+        /* Круглая ручка настройки */
+        .knob-container {
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .knob {
+            width: 90px;
+            height: 90px;
+            background: #1a0f0a;
+            border: 5px solid #3c2417;
+            border-radius: 50%;
+            cursor: grab;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .knob:active { cursor: grabbing; }
+
+        /* Риска на ручке, показывающая поворот */
+        .knob-dot {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            width: 6px;
+            height: 16px;
+            background: #ffaa00;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .hint {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="back-button" onclick="goBack()">◀ Вернуться на чердак</button>
+
+    <div class="radio-body">
+        <div class="scale">
+            <div class="ticks"></div>
+            <div class="pointer" id="radio-pointer" style="left: 10%;"></div>
+            <div class="frequency-display"><span id="freq-val">87.0</span> MHz</div>
+        </div>
+
+        <div class="knob-container">
+            <div class="knob" id="radio-knob">
+                <div class="knob-dot"></div>
+            </div>
+            <div style="color: #887766; font-size: 12px; font-weight: bold; margin-top:5px;">НАСТРОЙКА</div>
+        </div>
+    </div>
+
+    <div class="hint">Зажмите ручку мышкой и тяните ВВЕРХ/ВНИЗ или используйте СТРЕЛКИ ВЛЕВО/ВПРАВО</div>
+
+    <audio id="sound-static" loop>
+        <source src="Assets/RadioStatic.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="sound-voice" loop>
+        <source src="Assets/RadioVoice.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let currentFreq = 87.0;
+        const MIN_FREQ = 87.0;
+        const MAX_FREQ = 108.0;
+        const TARGET_FREQ = 94.5; 
+        
+        let isDragging = false;
+        let startY = 0;
+
+        // Подгружаем настройки звука
+        const savedVolume = localStorage.getItem('gameVolume') || 50;
+        const volumeRatio = savedVolume / 100;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const staticAudio = document.getElementById('sound-static');
+            const voiceAudio = document.getElementById('sound-voice');
+
+            if (staticAudio) staticAudio.volume = volumeRatio;
+            if (voiceAudio) voiceAudio.volume = 0; 
+
+            document.body.addEventListener('click', () => {
+                if (staticAudio && staticAudio.paused) staticAudio.play().catch(() => {});
+                if (voiceAudio && voiceAudio.paused) voiceAudio.play().catch(() => {});
+                updateRadioAudio();
+            }, { once: true });
+        });
+
+        function updateRadioAudio() {
+            const staticAudio = document.getElementById('sound-static');
+            const voiceAudio = document.getElementById('sound-voice');
+            
+            if (!staticAudio || !voiceAudio) return;
+
+            const distance = Math.abs(currentFreq - TARGET_FREQ);
+
+            if (distance < 0.2) {
+                staticAudio.volume = 0;
+                voiceAudio.volume = volumeRatio;
+                
+                localStorage.setItem('foundSecretCode', '7777'); 
+                
+                setTimeout(() => {
+                    alert("Сквозь радиоволны пробивается жуткий голос: «СЕМЬ... СЕМЬ... СЕМЬ... СЕМЬ...»\nВы запомнили истинный код двери!");
+                    window.location.href = "Game.html";
+                }, 2500);
+
+            } else if (distance < 2.0) {
+                const closeness = (2.0 - distance) / 2.0; 
+                voiceAudio.volume = closeness * volumeRatio;
+                staticAudio.volume = (1.0 - (closeness * 0.7)) * volumeRatio;
+            } else {
+                voiceAudio.volume = 0;
+                staticAudio.volume = volumeRatio;
+            }
+        }
+
+
+        function updateInterface() {
+            const percent = ((currentFreq - MIN_FREQ) / (MAX_FREQ - MIN_FREQ)) * 100;
+            document.getElementById('radio-pointer').style.left = Math.max(2, Math.min(96, percent)) + '%';
+            document.getElementById('freq-val').innerText = currentFreq.toFixed(1);
+
+            const rotation = ((currentFreq - MIN_FREQ) * 15); 
+            document.getElementById('radio-knob').style.transform = `rotate(${rotation}deg)`;
+
+            updateRadioAudio();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            const staticAudio = document.getElementById('sound-static');
+            const voiceAudio = document.getElementById('sound-voice');
+            if (staticAudio && staticAudio.paused) staticAudio.play().catch(() => {});
+            if (voiceAudio && voiceAudio.paused) voiceAudio.play().catch(() => {});
+
+            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                currentFreq += 0.1;
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                currentFreq -= 0.1;
+            }
+            
+            currentFreq = Math.max(MIN_FREQ, Math.min(MAX_FREQ, currentFreq));
+            updateInterface();
+        });
+
+        const knob = document.getElementById('radio-knob');
+        knob.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startY = e.clientY;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const deltaY = startY - e.clientY; 
+            startY = e.clientY;
+
+            currentFreq += deltaY * 0.05; 
+            currentFreq = Math.max(MIN_FREQ, Math.min(MAX_FREQ, currentFreq));
+            updateInterface();
+        });
+
+        document.addEventListener('mouseup', () => { isDragging = false; });
+
+        function goBack() {
+            window.location.href = "Game.html";
+        }
+    </script>
+</body>
+</html>

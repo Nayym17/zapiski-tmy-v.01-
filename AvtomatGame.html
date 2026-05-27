@@ -1,0 +1,201 @@
+ <!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Vending Machine - Full Stock</title>
+    <style>
+        body { 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            height: 100vh; margin: 0; background: #121212; font-family: 'Segoe UI', sans-serif; 
+            overflow: hidden;
+        }
+        
+        .vending-machine {
+            background: #b22222;
+            padding: 20px;
+            border-radius: 20px;
+            border: 8px solid #8b0000;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.9);
+        }
+
+        canvas { 
+            background: #1e272e; 
+            border: 10px solid #2f3542; 
+            border-radius: 8px;
+            display: block;
+        }
+
+        .hint-text {
+            margin-top: 25px;
+            color: #7f8c8d;
+            font-size: 16px;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .output-slot {
+            width: 140px; height: 15px;
+            background: #000;
+            margin: 15px auto 0;
+            border-radius: 5px;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.1);
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            z-index: 100;
+            transition: background 0.2s;
+        }
+        .back-button:hover {
+            background: #c0392b;
+        }
+
+    </style>
+</head>
+<body>
+    <button class="back-button" onclick="goBack()">◀ Назад в Фае</button>
+    <div class="vending-machine">
+        <canvas id="vendingCanvas"></canvas>
+        <div class="output-slot"></div>
+    </div>
+
+    <div class="hint-text">ИСПОЛЬЗУЙТЕ СТРЕЛКИ КЛАВИАТУРЫ</div>
+
+    <script>
+        const canvas = document.getElementById('vendingCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 340;
+canvas.height = 680;
+
+const productPool = ['🥤', '🍫', '🍿', '🍩', '🍪', '🧃', '🥨', '🍎', '🥪', '🍬', '🍦', '🥫'];
+
+const shelves = [];
+for (let i = 1; i <= 7; i++) {
+    const shelfItems = [];
+    for (let j = 0; j < 8; j++) {
+        shelfItems.push(productPool[Math.floor(Math.random() * productPool.length)]);
+    }
+
+    shelves.push({
+        y: i * 85 + 20,
+        holeX: 60 + Math.random() * 220,
+        items: shelfItems
+    });
+}
+
+const key = { x: 170, y: 50, size: 35, speed: 10 };
+const holeWidth = 70;
+let isGameOver = false;
+
+function draw() {
+    if (isGameOver) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#161d23';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    shelves.forEach(shelf => {
+        ctx.font = "22px serif";
+        ctx.textAlign = 'center';
+        
+        shelf.items.forEach((emoji, index) => {
+            let itemX = 25 + (index * 42);
+            if (itemX < shelf.holeX - holeWidth/2 || itemX > shelf.holeX + holeWidth/2) {
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillText(emoji, itemX + 2, shelf.y - 13); 
+                ctx.globalAlpha = 0.7;
+                ctx.fillText(emoji, itemX, shelf.y - 15);
+                ctx.globalAlpha = 1.0;
+            }
+        });
+
+        ctx.strokeStyle = '#57606f';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(0, shelf.y);
+        ctx.lineTo(shelf.holeX - holeWidth/2, shelf.y);
+        ctx.moveTo(shelf.holeX + holeWidth/2, shelf.y);
+        ctx.lineTo(canvas.width, shelf.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ced4da';
+        ctx.lineWidth = 1.5;
+        for(let x = 20; x < canvas.width; x += 42) {
+            if (x < shelf.holeX - 30 || x > shelf.holeX + 30) {
+                ctx.beginPath();
+                ctx.ellipse(x, shelf.y - 15, 14, 20, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+    });
+
+    ctx.save();
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.font = `${key.size}px serif`;
+    ctx.fillText('🔑', key.x, key.y);
+    ctx.restore();
+
+    const glassGlow = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    glassGlow.addColorStop(0, 'rgba(255,255,255,0.0)');
+    glassGlow.addColorStop(0.2, 'rgba(255,255,255,0.05)');
+    glassGlow.addColorStop(0.25, 'rgba(255,255,255,0.1)');
+    glassGlow.addColorStop(1, 'rgba(255,255,255,0.0)');
+    ctx.fillStyle = glassGlow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (key.y > shelves[shelves.length - 1].y + 20) {
+        victory();
+    }
+
+    requestAnimationFrame(draw);
+}
+
+function victory() {
+    isGameOver = true;
+    localStorage.setItem('hasBasementKey', 'true');
+    alert("Ключ получен! Теперь можно открыть дверь в подвал.");
+    window.location.href = 'Game.html';
+}
+
+window.addEventListener('keydown', (e) => {
+    if (isGameOver) return;
+
+    if(e.key === 'ArrowLeft') key.x -= key.speed;
+    if(e.key === 'ArrowRight') key.x += key.speed;
+    if(e.key === 'ArrowUp') key.y -= key.speed;
+    if(e.key === 'ArrowDown') key.y += key.speed;
+
+    key.x = Math.max(25, Math.min(canvas.width - 25, key.x));
+    key.y = Math.max(25, Math.min(canvas.height - 25, key.y));
+
+    shelves.forEach(shelf => {
+        const keyBottom = key.y + 12;
+        if (Math.abs(keyBottom - shelf.y) < 10) {
+            if (key.x < shelf.holeX - holeWidth/2 || key.x > shelf.holeX + holeWidth/2) {
+                key.y = shelf.y - 25;
+            }
+        }
+    });
+});
+
+draw();
+
+function goBack() {
+    window.location.href = "Game.html";
+}
+
+    </script>
+</body>
+</html>

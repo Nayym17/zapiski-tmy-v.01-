@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Кодовый замок</title>
+	<style>
+		body {
+			background-color: #1a1a1a;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+			margin: 0;
+			font-family: Arial, sans-serif;
+			position: relative;
+			overflow: hidden;
+            user-select: none;
+		}
+
+		.back-button {
+			position: absolute;
+			top: 20px;
+			left: 20px;
+			padding: 10px 20px;
+			background: #e74c3c;
+			color: white;
+			text-decoration: none;
+			border-radius: 5px;
+			z-index: 100;
+			transition: 0.2s;
+			cursor: pointer;
+			border: none;
+			font-size: 16px;
+		}
+		.back-button:hover {
+			background: #c0392b;
+		}
+
+		.keypad {
+			background-color: #a19f9f;
+			border: 5px solid #000;
+			padding: 40px;
+			width: 300px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+		}
+
+		.display {
+			background-color: #222;
+			border: 4px solid #000;
+			width: 100%;
+			height: 80px;
+			margin-bottom: 20px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 3rem;
+			letter-spacing: 15px;
+			font-weight: bold;
+			color: #0f0;
+			font-family: monospace;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 15px;
+			width: 100%;
+		}
+
+		.btn {
+			height: 60px;
+			background-color: #c0c0c0;
+			border: 2px solid #444;
+			font-size: 1.8rem;
+			cursor: pointer;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			transition: transform 0.1s;
+		}
+
+		.btn:active {
+			transform: scale(0.9);
+			background-color: #999;
+		}
+
+		.btn-ok {
+			background-color: #2ecc71;
+			color: #fff;
+			font-size: 2rem;
+		}
+
+		.btn-clear {
+			background-color: #e74c3c;
+			color: #fff;
+			font-size: 2rem;
+		}
+
+		/* Стили скримера ловушки и финальной битвы */
+	#screamer-overlay {
+    	display: none;
+    	position: fixed;
+    	top: 0; left: 0;
+    	width: 100%; height: 100%; /* Заменяем vw/vh на % */
+    	background: #000;
+    	z-index: 9999; 
+    	justify-content: center;
+    	align-items: center;
+    
+    	/* ФИНАЛЬНЫЙ БЛОК: Запрещаем клики, выделение и скролл по картинке */
+    	pointer-events: none; 
+    	user-select: none;
+    	-webkit-user-select: none;
+    	overflow: hidden;
+	}
+
+	#screamer-overlay img {
+   	 	width: 100%; height: 100%;
+   	 	object-fit: cover;
+   	 	animation: shake 0.1s infinite;
+   	 
+   	 	/* Дополнительная защита для самой картинки */
+   	 	pointer-events: none;
+   	 	overflow: hidden;
+	}
+
+
+        /* Элементы QTE битвы */
+        #qte-ui {
+            display: none;
+            position: absolute;
+            top: 30px;
+            text-align: center;
+            z-index: 10002;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid red;
+            color: white;
+            font-size: 24px;
+        }
+
+        #qte-target-btn {
+            display: none;
+            position: absolute;
+            z-index: 10001;
+            padding: 15px 25px;
+            background: #e74c3c;
+            color: white;
+            border: 3px solid white;
+            font-weight: bold;
+            font-size: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 20px red;
+            transition: background 0.1s;
+        }
+        #qte-target-btn:active {
+            background: #c0392b;
+            transform: scale(0.95);
+        }
+
+		@keyframes shake {
+			0% { transform: translate(5px, 5px) scale(1.05); }
+			25% { transform: translate(-5px, -5px) scale(1.0); }
+			50% { transform: translate(-5px, 5px) scale(1.05); }
+			75% { transform: translate(5px, -5px) scale(1.0); }
+			100% { transform: translate(5px, 5px) scale(1.05); }
+		}
+	</style>
+</head>
+<body>
+
+	<button id="back-nav" class="back-button" onclick="goBack()">◀ Назад к двери</button>
+
+	<div class="keypad" id="keypad-panel">
+		<div class="display" id="screen">****</div>
+
+		<div class="grid">
+			<button class="btn" onclick="press(1)">1</button>
+			<button class="btn" onclick="press(2)">2</button>
+			<button class="btn" onclick="press(3)">3</button>
+
+			<button class="btn" onclick="press(4)">4</button>
+			<button class="btn" onclick="press(5)">5</button>
+			<button class="btn" onclick="press(6)">6</button>
+
+			<button class="btn" onclick="press(7)">7</button>
+			<button class="btn" onclick="press(8)">8</button>
+			<button class="btn" onclick="press(9)">9</button>
+
+			<button class="btn btn-ok" onclick="check()">✔</button>
+			<button class="btn" onclick="press(0)">0</button>
+			<button class="btn btn-clear" onclick="clearAll()">❌</button>
+		</div>
+	</div>
+
+    <div id="qte-ui">
+        ОСТАЛОСЬ ВРЕМЕНИ: <span id="qte-timer" style="color: red; font-weight: bold;">10.0</span>с<br>
+        КЛИКИ: <span id="qte-clicks" style="color: gold;">0</span> / 5
+    </div>
+
+    <button id="qte-target-btn" onclick="registerQteClick()">КЛИКАЙ СЮДА!</button>
+
+	<div id="screamer-overlay">
+		<img id="screamer-img" src="Assets/Ono.png" alt="СКРИМЕР">
+		<audio id="screamer-sound">
+			<source src="Assets/Scream.mp3" type="audio/mpeg">
+		</audio>
+	</div>
+
+	<audio id="bg-music" loop>
+		<source src="Assets/Voice.mp3" type="audio/mpeg">
+	</audio>
+
+	<script>
+    let inputCode = "";
+    const TRAP_CODE = localStorage.getItem('foundSecretCode') || "2453"; 
+    const REAL_WIN_CODE = "7777";
+
+    let qteClicks = 0;
+    const GOAL_CLICKS = 5;
+    let timeLeft = 30.0;
+    let qteTimerInterval = null;
+    let qteButtonInterval = null;
+    let isBattleActive = false;
+
+	window.addEventListener('DOMContentLoaded', () => {
+		const audio = document.getElementById('bg-music');
+		const scream = document.getElementById('screamer-sound');
+		const savedVolume = localStorage.getItem('gameVolume') || 50;
+		
+		if (audio) audio.volume = savedVolume / 100;
+		if (scream) scream.volume = savedVolume / 100;
+
+		document.body.addEventListener('click', () => {
+			if (audio && audio.paused && !isBattleActive) {
+				audio.play().catch(e => console.log("Аудио активировано"));
+			}
+			if (scream && scream.paused) {
+				scream.play().then(() => { scream.pause(); scream.currentTime = 0; }).catch(() => {});
+			}
+		}, { once: true });
+	});
+
+    function updateDisplay() {
+        const screen = document.getElementById('screen');
+        let display = inputCode;
+        while(display.length < 4) display += "*";
+        screen.innerText = display;
+    }
+
+    function press(num) {
+        if (inputCode.length < 4) {
+            inputCode += num;
+            updateDisplay();
+        }
+    }
+
+    function clearAll() {
+        inputCode = "";
+        updateDisplay();
+    }
+
+    function check() {
+        if (inputCode === REAL_WIN_CODE) {
+            startFinalBattle();
+        } else if (inputCode === TRAP_CODE) {
+            triggerTrapScreamer();
+        } else {
+            alert("Неверный код! Ничего не происходит...");
+            clearAll();
+        }
+    }
+
+    function triggerTrapScreamer() {
+        const overlay = document.getElementById('screamer-overlay');
+        const sound = document.getElementById('screamer-sound');
+        overlay.style.display = 'flex';
+        if (sound) sound.play().catch(() => {});
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            clearAll();
+            window.location.href = "Game.html"; 
+        }, 2000);
+    }
+
+    function startFinalBattle() {
+        isBattleActive = true;
+        const audio = document.getElementById('bg-music');
+        const scream = document.getElementById('screamer-sound');
+        if (audio) audio.pause();
+        if (scream) {
+            scream.loop = true;
+            scream.play().catch(() => {});
+        }
+
+        document.getElementById('keypad-panel').style.display = 'none';
+        document.getElementById('back-nav').style.display = 'none';
+
+        document.getElementById('screamer-overlay').style.display = 'flex';
+        document.getElementById('qte-ui').style.display = 'block';
+        
+        const targetBtn = document.getElementById('qte-target-btn');
+        targetBtn.style.display = 'block';
+        moveQteButton();
+
+        qteButtonInterval = setInterval(moveQteButton, 800);
+        qteTimerInterval = setInterval(() => {
+            timeLeft -= 0.1;
+            if (timeLeft <= 0) {
+                timeLeft = 0;
+                endBattle(false);
+            }
+            document.getElementById('qte-timer').innerText = timeLeft.toFixed(1);
+        }, 100);
+    }
+
+    function moveQteButton() {
+        const btn = document.getElementById('qte-target-btn');
+        
+        const maxX = window.innerWidth - 180;
+        const maxY = window.innerHeight - 80;
+
+        const randomX = Math.max(20, Math.floor(Math.random() * maxX));
+        const randomY = Math.max(120, Math.floor(Math.random() * maxY)); 
+
+        btn.style.left = randomX + 'px';
+        btn.style.top = randomY + 'px';
+    }
+
+    function registerQteClick() {
+        if (!isBattleActive) return;
+
+        qteClicks++;
+        document.getElementById('qte-clicks').innerText = qteClicks;
+
+        if (qteClicks >= GOAL_CLICKS) {
+            endBattle(true);
+        } else {
+        	moveQteButton();
+        }
+ 	}
+
+ 	function endBattle(isVictory) {
+ 		clearInterval(qteTimerInterval);
+ 		clearInterval(qteButtonInterval);
+ 		isBattleActive = false;
+ 		const scream = document.getElementById('screamer-sound');
+ 		if (scream) {
+ 			scream.pause();
+ 			scream.loop = false;
+ 			scream.currentTime = 0;
+ 		}
+ 		if (isVictory) {
+ 			alert("НЕВЕРОЯТНО! Ты вырвался из лап монстра и выбежал наружу! Свобода!");
+ 			localStorage.setItem('gameWin', 'true');
+ 			localStorage.removeItem('lastLocation');
+ 			localStorage.removeItem('isNightState');
+ 			localStorage.removeItem('energiState');
+ 			window.location.href = "index.html";
+ 		} else {
+ 			alert("Ты не успел... Тьма поглотила тебя. Попробуй еще раз!");
+ 			window.location.href = "Game.html";
+ 		}
+ 	}
+ 	function goBack() {
+ 		window.location.href = "Game.html";
+ 	}
+ updateDisplay();
+</script>
+</html>
