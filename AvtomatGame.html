@@ -61,6 +61,45 @@
             background: #c0392b;
         }
 
+        /* Контейнер для кнопок джойстика на телефоне */
+        .mobile-controls {
+        display: none; /* По умолчанию скрыты на ПК */
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+        }
+        .mobile-row {
+        display: flex;
+        gap: 20px;
+        }
+        .mob-btn {
+        width: 60px;
+        height: 60px;
+        background: #2f3542;
+        border: 3px solid #ced4da;
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        user-select: none;
+        -webkit-user-select: none;
+        }
+        .mob-btn:active {
+        background: #e74c3c;
+        transform: scale(0.9);
+        }
+
+        /* Если экран телефона маленький — показываем кнопки */
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -68,6 +107,15 @@
     <div class="vending-machine">
         <canvas id="vendingCanvas"></canvas>
         <div class="output-slot"></div>
+    </div>
+ <!-- Виртуальный джойстик для телефонов -->
+    <div class="mobile-controls">
+        <button class="mob-btn" ontouchstart="startMobileMove('ArrowUp')" ontouchend="stopMobileMove()">▲</button>
+        <div class="mobile-row">
+            <button class="mob-btn" ontouchstart="startMobileMove('ArrowLeft')" ontouchend="stopMobileMove()">◀</button>
+            <button class="mob-btn" ontouchstart="startMobileMove('ArrowRight')" ontouchend="stopMobileMove()">▶</button>
+        </div>
+        <button class="mob-btn" ontouchstart="startMobileMove('ArrowDown')" ontouchend="stopMobileMove()">▼</button>
     </div>
 
     <div class="hint-text">ИСПОЛЬЗУЙТЕ СТРЕЛКИ КЛАВИАТУРЫ</div>
@@ -194,6 +242,33 @@ draw();
 
 function goBack() {
     window.location.href = "Game.html";
+}
+
+let mobileInterval = null;
+
+function startMobileMove(direction) {
+    if (isGameOver) return;
+    // Очищаем старый интервал на всякий случай
+    clearInterval(mobileInterval);
+    
+    // Запускаем постоянное движение, пока палец на кнопке
+    mobileInterval = setInterval(() => {
+        if(direction === 'ArrowLeft') key.x -= key.speed;
+        if(direction === 'ArrowRight') key.x += key.speed;
+        if(direction === 'ArrowUp') key.y -= key.speed;
+        if(direction === 'ArrowDown') key.y += key.speed;
+
+        key.x = Math.max(25, Math.min(canvas.width - 25, key.x));
+        key.y = Math.max(25, Math.min(canvas.height - 25, key.y));
+        
+        // Принудительно запускаем музыку автомата, если она еще не играет
+        const audio = document.getElementById('bg-music');
+        if (audio && audio.paused) audio.play().catch(() => {});
+    }, 30); // Частота обновления движения
+}
+
+function stopMobileMove() {
+    clearInterval(mobileInterval);
 }
 
     </script>
