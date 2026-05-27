@@ -167,6 +167,14 @@
         </div>
     </div>
 
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h2>Скажи свое имя, дитя...</h2>
+            <input type="text" id="playerNameInput" placeholder="Назовите своего искателя..." style="width: 80%; padding: 10px; font-size: 18px; text-align: center; margin-bottom: 20px; border-radius: 5px; border: 1px solid #555; background: #222; color: white;">
+            <button class="btn" onclick="confirmName()">Подтвердить</button>
+        </div>
+    </div>
+
     <audio id="menu-music" loop>
         <source src="Assets/MenuMusic.mp3" type="audio/mpeg">
     </audio>
@@ -198,18 +206,32 @@
         });
 
         function startGame() {
-            const agree = confirm("вы действительно хотите начать новую игру ?");
-            if (agree) {
-                const currentVolume = localStorage.getItem('gameVolume') || 50;
-                localStorage.clear();
-                
-                localStorage.setItem('gameVolume', currentVolume);
-                localStorage.setItem('lastLocation', 'Лестница');
-                localStorage.setItem('isNightState', 'false');
-                
-                window.location.href = 'Game.html';
-            }
+        // Вместо confirm теперь открываем красивое окошко ввода имени
+        const modal = document.getElementById('nameModal');
+        modal.style.display = 'flex';
+        document.getElementById('playerNameInput').focus();
+    }
+
+    function confirmName() {
+        const nameInput = document.getElementById('playerNameInput').value.trim();
+        
+        if (nameInput === "") {
+            alert("Пожалуйста, введи своё имя. Во тьме нельзя оставаться безымянным...");
+            return;
         }
+
+        // Сохраняем имя и настройки громкости, очищая старый прогресс
+        const currentVolume = localStorage.getItem('gameVolume') || 50;
+        localStorage.clear();
+        
+        localStorage.setItem('playerName', nameInput); // Сохраняем имя!
+        localStorage.setItem('gameVolume', currentVolume);
+        localStorage.setItem('lastLocation', 'Лестница');
+        localStorage.setItem('isNightState', 'false');
+        
+        // Переходим в саму игру
+        window.location.href = 'Game.html';
+    }
 
         function toggleSettings(show) {
             const modal = document.getElementById('settingsModal');
