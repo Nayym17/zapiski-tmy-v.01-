@@ -311,8 +311,6 @@ function moveKeyWithTouch(e) {
     key.x = Math.max(25, Math.min(canvas.width - 25, key.x));
     key.y = Math.max(25, Math.min(canvas.height - 25, key.y));
 
-    // Принудительно проверяем коллизии с полками, чтобы ключ не пролетал сквозь них от резкого движения
-    checkCollisions();
 }
 
     </script>
