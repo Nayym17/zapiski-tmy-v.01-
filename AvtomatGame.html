@@ -270,6 +270,50 @@ function startMobileMove(direction) {
 function stopMobileMove() {
     clearInterval(mobileInterval);
 }
+// 📱 СОВРЕМЕННОЕ СЕНСОРНОЕ УПРАВЛЕНИЕ ДЛЯ ТЕЛЕФОНОВ (БЕЗ КНОПОК)
+let isTouchMoving = false;
+
+canvas.addEventListener('touchstart', (e) => {
+    if (isGameOver) return;
+    isTouchMoving = true;
+
+    // Включаем музыку при первом же прикосновении к автомату на телефоне
+    const audio = document.getElementById('bg-music');
+    if (audio && audio.paused) {
+        audio.play().catch(() => {});
+    }
+
+    moveKeyWithTouch(e);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+    if (!isTouchMoving || isGameOver) return;
+    e.preventDefault(); // Блокируем случайную прокрутку самой страницы пальцем
+    moveKeyWithTouch(e);
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+    isTouchMoving = false;
+});
+
+// Логика пересчета координат пальца в координаты ключа
+function moveKeyWithTouch(e) {
+    const rect = canvas.getBoundingClientRect();
+    // Берем координаты точки касания пальца относительно Canvas
+    const touchX = e.touches[0].clientX - rect.left;
+    const touchY = e.touches[0].clientY - rect.top;
+
+    // Плавно перемещаем ключ в точку касания пальца
+    key.x = touchX;
+    key.y = touchY;
+
+    // Удерживаем ключ внутри границ экрана автомата
+    key.x = Math.max(25, Math.min(canvas.width - 25, key.x));
+    key.y = Math.max(25, Math.min(canvas.height - 25, key.y));
+
+    // Принудительно проверяем коллизии с полками, чтобы ключ не пролетал сквозь них от резкого движения
+    checkCollisions();
+}
 
     </script>
 </body>
