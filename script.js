@@ -129,7 +129,7 @@ function updateScreen() {
 
     // Предмет слева (Ящик в Классе)
     const predImgLv = document.getElementById('predmetLv');
-    if (loc.predlv && !isNight) { 
+    if (loc.predlv) { 
         predImgLv.src = loc.predlv;
         predImgLv.style.display = "block";
         predImgLv.onclick = () => {          
