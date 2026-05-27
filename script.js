@@ -5,6 +5,10 @@ let hasBooks = localStorage.getItem('hasBooksState') === 'true';
 let energi = localStorage.getItem('energiState') === 'true';
 let hasKey = localStorage.getItem('hasBasementKey') === 'true';
 let gameGG = localStorage.getItem('gamedaedKey') === 'true';
+let pName = localStorage.getItem('playerName') || "Игрок";
+
+let teacherInBasement = false;
+let currentMonologueStep = 0; 
 
 const images = {
     "Лестница": "url('Assets/Lestnica.jpg')",
@@ -30,12 +34,16 @@ const locations = {
     "Коридор": { 
         left: "Класс", down: "Лестница", up: "Чердак",
         note: {
-            title: "Записка правды",
-            text: `Слушай меня если хочешь выжить, код в ящике - ложь. Сыграй с ним игру в зале душ и победи. Он даст тебе печать души и ты пройдешь сквозь смотрящих.`
+            title: "Странник Модер",
+            text: `Здравтсвуй дитя, я странник что в ночи найдет путь из полнейшей тьмы,
+            и укажет дорогу теням. Мой брат поглощен тьмой и раз ты читаешь это, то он
+            завлек тебя в бездну. Нужно быстрее выбиратся!!! Сущность любит играть, у него
+            есть ключ к выходу. Секрет брата в его обиталище - ложь !
+            Удачи дитя, да и пусть свет укажет тебе путь...`
         }
     },
     "Фае": { up: "Лестница", right: "Выход", left: "Библиотека", down: "Подвал", avto: "Assets/avtomat.png" },
-    "Подвал": { up: "Фае", ener: "Assets/Energi.png" },
+    "Подвал": { up: "Фае", ener: "Assets/Energi.png", char: "Assets/On.png"},
     "Выход": { left: "Фае", look: "Assets/password.png" },
     "Библиотека": { right: "Фае", char: "Assets/Ono.png" },
     "Класс": {
@@ -114,7 +122,12 @@ function updateScreen() {
     document.getElementById('location-name').innerText = currentLoc + (isNight ? " (Ночь)" : "");
 
     // Кнопки навигации
-    document.getElementById('btn-up').style.visibility = loc.up ? "visible" : "hidden";
+    // 🆕 Если Учитель заблокировал подвал — скрываем кнопку Вверх (Выход из подвала)
+    if (currentLoc === "Подвал" && teacherInBasement) {
+        document.getElementById('btn-up').style.visibility = "hidden";
+    } else {
+        document.getElementById('btn-up').style.visibility = loc.up ? "visible" : "hidden";
+    }
     document.getElementById('btn-down').style.visibility = loc.down ? "visible" : "hidden";
     document.getElementById('btn-left').style.visibility = loc.left ? "visible" : "hidden";
     document.getElementById('btn-right').style.visibility = loc.right ? "visible" : "hidden";
@@ -132,9 +145,14 @@ function updateScreen() {
     if (loc.predlv) { 
         predImgLv.src = loc.predlv;
         predImgLv.style.display = "block";
+        
         predImgLv.onclick = () => {          
-            saveState();
-            window.location.href = "Box.html";
+            if (isNight) {
+                saveState();
+                window.location.href = "Box.html";
+            } else {
+                showDialog("Учитель", `Эй, ${pName}! А ну-ка отойди от моего ящика! Займись делом и принеси учебники!`);
+            }
         };
     } else {
         predImgLv.style.display = "none";
@@ -174,7 +192,7 @@ function updateScreen() {
             avtoImg.style.filter = "brightness(0.4)";
             avtoImg.style.cursor = "default";
             avtoImg.onclick = () => {
-                showDialog("Система", "Автомат не работает...");
+                showDialog("Мысли", "Автомат не работает...");
             };
         }
     } else {
@@ -200,16 +218,31 @@ function updateScreen() {
                 energi = true;
                 saveState();
                 enerImg.style.filter = "drop-shadow(0 0 15px #2ecc71)";
-                showDialog("Мысли", "Щелк! Раздался гул генератора. Питание восстановлено!");
+                
+                // 🆕 Запускаем появление Учителя!
+                teacherInBasement = true;
+                currentMonologueStep = 0;
+                updateScreen(); // Принудительно обновляем экран, чтобы показать Учителя
             }
         };
     } else {
         enerImg.style.display = "none";
     }
-
-    // Персонаж и логика квеста
+        // Персонаж и логика квеста
     const charImg = document.getElementById('character');
-    if (loc.char && currentLoc !== "Чердак") {
+
+    // 1. ПРОВЕРКА: Учитель в подвале (Хоррор-ивент)
+    if (currentLoc === "Подвал" && teacherInBasement) {
+        charImg.src = "Assets/On.png"; // Картинка учителя
+        charImg.style.display = "block";
+        charImg.style.filter = "brightness(0.7) contrast(1.2) drop-shadow(0 0 15px red)";
+        charImg.onclick = null; // Отключаем обычный клик по спрайту, кликать надо по диалогу
+        
+        // Запускаем первую реплику монолога
+        advanceMonologue();
+    } 
+    // 2. ПРОВЕРКА: Обычные квестовые персонажи (Связали через else if!)
+    else if (loc.char && currentLoc !== "Чердак") {
         if ((currentLoc === 'Класс' && !isNight) || (currentLoc === "Библиотека" && isNight)) {
             charImg.src = loc.char;
             charImg.style.display = "block";
@@ -217,18 +250,22 @@ function updateScreen() {
 
             charImg.onclick = () => {
                 if (isNight && currentLoc === "Библиотека") {
-                    showDialog("???", `Ты сам пришел ко мне в руки! Или ты думаешь, что сможешь меня победить? Давай сыграем в игру! Тебе надо отыскать печать, у тебя будет 3 попытки!`);
+                    showDialog("???", `Охохо, как же мило ${pName}. Я всегда был здесь и ждал тебя... Я дам тебе печать что спугнёт смотрителя. Но не просто так конечно-же )))
+                        Ты ведь прекрасно знаешь меня, я люблю играть в игры, они всегда честные...в мою сторону... ну не суть!
+                        Отгадаешь где печать лежит - она твоя. У тебя 3 попыткы, а иначе... )))`);
                     document.getElementById('game-container').classList.add('shake');
                     setTimeout(() => {
                         saveState();
                         window.location.href = "GameGG.html";
-                    }, 5000); 
+                    }, 20000); 
                 }
             };
         } else {
             charImg.style.display = "none";
         }
-    } else {
+    } 
+    // 3. Если персонажей на локации вообще нет
+    else {
         charImg.style.display = "none";
     }
 
@@ -252,7 +289,7 @@ function updateScreen() {
                         updateScreen(); 
                     }, 1500);
                 } else {
-                    showDialog("Смотрящий", "Кто ты такой, смертный? Уйди прочь, пока я тебя не превратил в тень!");    
+                    showDialog("Смотрящий", `Тебе здесь не место,${pName}. Уйди прочь, пока я тебя не превратил в тень которая будет волочить свою жизнь в сгустке таких же подобных...`);    
                     setTimeout(() => { 
                         currentLoc = "Коридор"; 
                         updateScreen(); 
@@ -283,32 +320,30 @@ function updateScreen() {
 
     // ВАЖНО: Запускаем проверку квестов и мыслей при каждом обновлении экрана!
     handleLogic(loc);
-} // Скобка закрывает функцию updateScreen
-
+ // Скобка закрывает функцию updateScreen
+}
 // 4. Логика автоматических квестов
 function handleLogic(loc) {
     if (currentLoc === "Библиотека" && !isNight && !hasBooks) {
         hasBooks = true;
         saveState();
-        showDialog("Инвентарь", "Вы забрали учебники из библиотеки.");
+        showDialog(`${pName}`, "И че это я должен таскать эти учебники ? хмм... они довольно тяжелые!");
         return;
     }
 
     if (currentLoc === "Класс") {
         if (isNight) {
-            showDialog("Мысли", "Я уснул? В аудитории так страшно... Где все? На улице уже ночь? Надо уходить!");
+            showDialog(`${pName}`, `Что...в глазах рябит.. где я? ${pName}, соберись... В аудитории так страшно... Где все? На улице уже ночь? Надо уходить!`);
         } else if (hasBooks) {
-            showDialog("Учитель", "О, ты принес учебники. Клади на стол и садись... *Вы чувствуете сильную усталость*");
-            hasKey = true;
+            showDialog("Учитель", `О, ${pName}, а вот и учебники, наконец-то! Клади на стол и садись... *Что-то не так...меня клонит в сон..н..н*`);
             saveState();
             setTimeout(GoToSleep, 4000);
         } else {
-            showDialog("Учитель", "Сходи в библиотеку за учебниками!");
+            showDialog("Учитель", `Эй, ${pName}, помоги мне! Сходи в библиотеку за учебниками, мы не начнем урок без них... живее!`);
         }
         return;
     }
     
-    // Если у локации есть базовый текст (как на Лестнице) и нет живого персонажа
     if (loc.text && !loc.char) {
         showDialog("Окружение", loc.text);
     }
@@ -323,19 +358,23 @@ function showDialog(name, text) {
 }
 
 function move(direction) {
+    // 1. ПРОВЕРКА: Попытка зайти в Подвал из Фае без ключа
     if (currentLoc === "Фае" && direction === "down") {
         if (!hasKey) {
-            showDialog("Система", "Дверь в подвал заперта. Нужен ключ.");
-            return;
-        }
-    }
-    if (currentLoc === "Коридор" && direction === "up") {
-        if (!isNight) {
-            showDialog("Мысли", "Мне туда не надо.");
-            return;
+            showDialog(`${pName}`, "Дверь в подвал заперта, хмм...где же ключ ?");
+            return; // Мгновенно выходим из функции, переход заблокирован!
         }
     }
 
+    // 2. ПРОВЕРКА: Попытка зайти на Чердак из Коридора днем
+    if (currentLoc === "Коридор" && direction === "up") {
+        if (!isNight) {
+            showDialog(`${pName}`, "И зачем мне туда ?");
+            return; // Выходим из функции, переход заблокирован!
+        }
+    }
+
+    // 3. ОБЫЧНЫЙ ПЕРЕХОД (срабатывает, только если проверки выше пройдены успешно)
     const next = locations[currentLoc][direction];
     if (next) {
         playMoveSound(); 
@@ -344,6 +383,41 @@ function move(direction) {
         updateScreen();
     }
 }
+
+// 🆕 МАССИВ РЕПЛИК УЧИТЕЛЯ ДЛЯ ПОДВАЛА
+const teacherMonologue = [
+    `Щелк... Ай..ай..глаза..зачем так резко то ? Ну и вредина ты ${pName}...`,
+    `Что ? Почему глаза округлились ? Монстра увидел ? ахаха...
+    Ты реально наделся уйти отсюда ? Зачем, я что-то сделал не так ? 
+    Просто пойми, ты еще не принял этот мир, он намного проще и легче...чем реальный...`,
+    `${pName} я не хотел навредить тебе, но все что ты прошел или проходишь ради тебя!
+    Сколько бы я не сделал препядствий и ловушек, ты их проходишь чтобы обрести свободу...свободу...`,
+    `У человека нельзя отнять свободу, чувство что его окрыляет...иначе его и человеком нельзя назвать.
+    Может поэтому все те, которых я спас обратились в тень...`,
+    "Даже если так, мой...моя сущность не отпустит никого, даже меня. Прости что затянул тебя во все это..."
+];
+
+// Функция вывода текущей реплики Учителя
+function advanceMonologue() {
+    if (currentMonologueStep < teacherMonologue.length) {
+        showDialog("Учитель", teacherMonologue[currentMonologueStep]);
+    } else {
+        // МОНОЛОГ ОКОНЧЕН: Учитель исчезает, подвал разблокирован
+        teacherInBasement = false;
+        showDialog(`${pName}`, "Ниче не понятно...но интересно.....БУЖИМ!!!");
+        updateScreen(); // Перерисовываем экран (вернет кнопку Выхода и спрячет спрайт)
+    }
+}
+
+// Перехватчик кликов по диалоговому окну
+function handleDialogClick() {
+    // Если сейчас идет сцена с Учителем в подвале — двигаем монолог по клику
+    if (currentLoc === "Подвал" && teacherInBasement) {
+        currentMonologueStep++;
+        advanceMonologue();
+    }
+}
+
 
 function GoToSleep() {
     const screen = document.getElementById('game-container');
