@@ -258,6 +258,33 @@
 
         document.addEventListener('mouseup', () => { isDragging = false; });
 
+        // 📱 Добавляем поддержку тач-событий для мобильных телефонов
+        knob.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            // У телефонов координаты берутся из первого касания (touches[0])
+            startY = e.touches[0].clientY; 
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            // Принудительно запускаем шумы радио, если они не включились сами
+            const staticAudio = document.getElementById('sound-static');
+            const voiceAudio = document.getElementById('sound-voice');
+            if (staticAudio && staticAudio.paused) staticAudio.play().catch(() => {});
+            if (voiceAudio && voiceAudio.paused) voiceAudio.play().catch(() => {});
+
+            const currentY = e.touches[0].clientY;
+            const deltaY = startY - currentY; // Тянем вверх — частота растет
+            startY = currentY;
+
+            currentFreq += deltaY * 0.04; // Немного снизили чувствительность для пальца
+            currentFreq = Math.max(MIN_FREQ, Math.min(MAX_FREQ, currentFreq));
+            updateInterface();
+        }, { passive: true }); // passive ускоряет работу тача в мобильных браузерах
+
+        document.addEventListener('touchend', () => { isDragging = false; });
+
         function goBack() {
             window.location.href = "Game.html";
         }
