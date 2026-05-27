@@ -2,17 +2,20 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>Ящик с вещами</title>
+    <title>Провал во тьму</title>
     <style>
         body {
             background: #1a1a1a;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
             overflow: hidden;
             font-family: sans-serif;
+            color: white;
+            user-select: none;
         }
 
         .back-button {
@@ -25,118 +28,240 @@
             text-decoration: none;
             border-radius: 5px;
             z-index: 100;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        .back-button:hover { background: #c0392b; }
+
+        #game-ui {
+            width: 400px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 20px;
+            font-weight: bold;
         }
 
         #box-container {
-            width: 600px;
-            height: 400px;
-            background: #4e342e;
-            border: 15px solid #3e2723;
+            width: 400px;
+            height: 550px;
+            background: #3e2723;
+            border: 10px solid #2d1d1a;
             position: relative;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
-            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
 
-        #secret-code {
-            position: absolute;
-            top: 180px;
-            left: 250px;
-            padding: 10px;
-            background: #fff;
-            color: #000;
-            font-weight: bold;
-            border: 1px solid #ccc;
-            transform: rotate(-5deg);
-            user-select: none;
-            z-index: 1;
+        canvas {
+            background: #1e120f;
+            display: block;
+            cursor: crosshair;
         }
 
-        .item {
-            padding: 10px;
+        /* Экран победы (вывод кода) */
+        #win-screen {
+            display: none;
             position: absolute;
-            cursor: grab;
-            user-select: none;
-            z-index: 10;
-            transition: transform 0.1s;
-            display: flex;
-            align-items: center;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            flex-direction: column;
             justify-content: center;
-            box-shadow: 2px 5px 15px rgba(0,0,0,0.3);
-            text-align: center;
-            box-sizing: border-box; /* Важно для правильного расчета границ */
+            align-items: center;
+            z-index: 10;
         }
-
-        .item:active { cursor: grabbing; }
-
-        .book { width: 120px; height: 160px; background: #8e24aa; color: white; }
-        .shirt { width: 150px; height: 150px; background: #546e7a; border-radius: 10px; }
-        .folder { width: 180px; height: 130px; background: #fbc02d; }
+        .code-paper {
+            background: white;
+            color: black;
+            padding: 15px 30px;
+            font-size: 32px;
+            font-weight: bold;
+            transform: rotate(-3deg);
+            box-shadow: 0 0 20px gold;
+            margin-bottom: 30px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
-    <a href="Game.html" class="back-button">Вернуться назад</a>
+    <button class="back-button" onclick="goBack()">◀ Сбежать назад</button>
 
-    <div id="box-container">
-        <!-- Код лежит внизу всех вещей -->
-        <div id="secret-code" onclick="findcode()" style="cursor: pointer;">КОД: 2453</div>
-
-        <!-- Вещи сверху -->
-        <div class="item book" style="top: 80px; left: 50px;">Учебник по анатомии существ зазеркалья</div>
-        <div class="item folder" style="top: 120px; left: 220px;">Папка с файлами тьмы</div>
-        <div class="item shirt" style="top: 180px; left: 100px;">Снимки темного света</div>
-        <div class="item book" style="top: 40px; left: 350px; background: #1b5e20;">Словарь сумрака</div>
+    <div id="game-ui">
+        <div id="hearts-display">❤❤❤❤❤❤</div>
+        <div id="depth-display">СПУСК: 0%</div>
     </div>
 
+    <div id="box-container">
+        <canvas id="boxCanvas"></canvas>
+        
+        <!-- Экран победы, открывающийся в конце -->
+        <div id="win-screen">
+            <h2 style="color: gold; text-align:center; padding: 0 20px;">Вы достигли дна ящика! Нажмите на записку:</h2>
+            <div class="code-paper" onclick="findcode()">Ну точно настоящий код: 2453</div>
+        </div>
+    </div>
+
+    <!-- Музыкальное сопровождение -->
+    <audio id="bg-music" loop>
+        <source src="Assets/Voice.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
-        const items = document.querySelectorAll('.item');
-        const box = document.getElementById('box-container');
-        let activeItem = null;
-        let offset = { x: 0, y: 0 };
+        const canvas = document.getElementById('boxCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 400;
+        canvas.height = 550;
 
-        items.forEach(item => {
-            item.addEventListener('mousedown', (e) => {
-                activeItem = item;
-                items.forEach(i => i.style.zIndex = 10);
-                item.style.zIndex = 11;
-                
-                // Считаем смещение курсора относительно левого верхнего угла самого ящика
-                const boxRect = box.getBoundingClientRect();
-                offset.x = e.clientX - boxRect.left - item.offsetLeft;
-                offset.y = e.clientY - boxRect.top - item.offsetTop;
-            });
-        });
+        let lives = 6;
+        let depth = 0; // Спуск от 0 до 100
+        let isGameOver = false;
+        let skulls = [];
+        let spawnTimer = 0;
 
-        document.addEventListener('mousemove', (e) => {
-            if (activeItem) {
-                const boxRect = box.getBoundingClientRect();
-                
-                // Новые координаты внутри ящика
-                let newX = e.clientX - boxRect.left - offset.x;
-                let newY = e.clientY - boxRect.top - offset.y;
-
-                // Ограничиваем движение стенками ящика
-                const maxX = boxRect.width - activeItem.offsetWidth - 30; // 30px - учет рамки
-                const maxY = boxRect.height - activeItem.offsetHeight - 30;
-
-                newX = Math.max(0, Math.min(newX, maxX));
-                newY = Math.max(0, Math.min(newY, maxY));
-
-                activeItem.style.left = newX + 'px';
-                activeItem.style.top = newY + 'px';
+        // Настройка звука из главного меню
+        const savedVolume = localStorage.getItem('gameVolume') || 50;
+        window.addEventListener('DOMContentLoaded', () => {
+            const audio = document.getElementById('bg-music');
+            if (audio) {
+                audio.volume = savedVolume / 100;
+                // Активация музыки при первом клике/таче
+                const startMusic = () => { if (audio.paused && !isGameOver) audio.play().catch(() => {}); };
+                document.body.addEventListener('mousedown', startMusic, { once: true });
+                document.body.addEventListener('touchstart', startMusic, { once: true });
             }
         });
 
-        document.addEventListener('mouseup', () => {
-            activeItem = null;
+        // Класс летящего черепа
+        class Skull {
+            constructor() {
+                this.size = 40;
+                this.x = Math.random() * (canvas.width - this.size) + this.size/2;
+                this.y = -this.size;
+                this.speed = 0.5 + Math.random() * 0.3 // Случайная скорость падения
+            }
+            update() {
+                this.y += this.speed;
+            }
+            draw() {
+                ctx.font = `${this.size}px serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("💀", this.x, this.y);
+            }
+        }
+
+        function updateGame() {
+            if (isGameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Движение дна ящика (визуализируем линией погружения)
+            depth += 0.05; // Скорость спуска
+            if (depth >= 100) {
+                depth = 100;
+                victory();
+                return;
+            }
+            document.getElementById('depth-display').innerText = `СПУСК: ${Math.floor(depth)}%`;
+
+            // Рисуем ползущую вверх текстуру стен ящика (простые полосы для эффекта движения вниз)
+            ctx.strokeStyle = '#2d1d1a';
+            ctx.lineWidth = 2;
+            let offset = (parseInt(depth * 10)) % 40;
+            for (let y = offset; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // 2. Спавн черепов
+            spawnTimer++;
+            if (spawnTimer > 45) { // Частота появления
+                skulls.push(new Skull());
+                spawnTimer = 0;
+            }
+
+            // 3. Обработка черепов
+            for (let i = skulls.length - 1; i >= 0; i--) {
+                skulls[i].update();
+                skulls[i].draw();
+
+                // Если череп упал на дно экрана
+                if (skulls[i].y > canvas.height + 20) {
+                    skulls.splice(i, 1);
+                    hitPlayer();
+                }
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        // Игрок пропустил череп
+        function hitPlayer() {
+            lives--;
+            let hearts = "";
+            for(let i=0; i<lives; i++) hearts += "❤️";
+            document.getElementById('hearts-display').innerText = hearts || "💀";
+
+            if (lives <= 0) {
+                isGameOver = true;
+                alert("Ты слышишь их ? Как их белые челюсти щелкают в ночи...");
+                window.location.href = "Game.html";
+            }
+        }
+
+        // Проверка попадания клика/тапа по черепу
+        function checkHit(inputX, inputY) {
+            if (isGameOver) return;
+            
+            for (let i = skulls.length - 1; i >= 0; i--) {
+                let s = skulls[i];
+                // Вычисляем расстояние между кликом и центром черепа
+                let dist = Math.sqrt((inputX - s.x)**2 + (inputY - s.y)**2);
+                
+                if (dist < s.size * 0.8) { // Если попали в радиус черепа
+                    skulls.splice(i, 1); // Уничтожаем череп
+                    break; // За один клик уничтожаем только один череп
+                }
+            }
+        }
+
+        // --- ОБРАБОТКА НАЖАТИЙ (ПК) ---
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            checkHit(clickX, clickY);
         });
 
+        // --- ОБРАБОТКА ТАПОВ (ТЕЛЕФОНЫ) ---
+        canvas.addEventListener('touchstart', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            // Получаем координаты первого пальца touches[0]
+            const touchX = e.touches[0].clientX - rect.left;
+            const touchY = e.touches[0].clientY - rect.top;
+            checkHit(touchX, touchY);
+        }, { passive: true });
+
+
+        function victory() {
+            isGameOver = true;
+            document.getElementById('win-screen').style.display = 'flex';
+        }
+
         function findcode() {
-            // Исправлена опечатка в foindSecretCode -> foundSecretCode
             localStorage.setItem('foundSecretCode', '2453');
             alert("Вы запомнили код: 2453");
             window.location.href = 'Game.html';
         }
+
+        function goBack() {
+            window.location.href = "Game.html";
+        }
+
+        // Старт игры
+        updateGame();
     </script>
 </body>
 </html>
